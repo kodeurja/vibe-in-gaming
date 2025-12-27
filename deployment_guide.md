@@ -1,59 +1,64 @@
-# Cloud Deployment Guide: Render & Vercel 🚀
+# Decoupled Deployment Guide: Render & Vercel 🚀☁️
 
-This guide explains how to host your backend on **Render** and your frontend on **Vercel**.
+This guide outlines how to host your backend on **Render** (as an API) and your frontend on **Vercel** (as a static site).
 
 ## 🏗️ Architecture Overview
-
-| Component | Platform | Role |
-| :--- | :--- | :--- |
-| **Backend** | Render | Flask API, AI Logic, Database Connection |
-| **Frontend** | Vercel | Static Assets, UI Hosting |
-| **Database** | Supabase | Cloud Persistence (Managed) |
+- **Backend (Render)**: Processes logic, AI generation, and database interactions.
+- **Frontend (Vercel)**: Serves the HTML, CSS, and JavaScript. Communicates with Render via `fetch()`.
 
 ---
 
-## 🟢 Part 1: Backend on Render
+## 🟢 Part 1: Deploy Backend (Render)
 
-Render will host your Flask server (`app.py`).
-
-### 1. Preparation
-I've already created the following files in your `backend/` folder:
-- **`Procfile`**: Tells Render how to start the Flask app.
-- **`runtime.txt`**: Specifies the Python version.
-- **Updated `requirements.txt`**: Includes `gunicorn` (production server).
-
-### 2. Deployment Steps
-1.  **Connect GitHub**: Log in to [Render](https://render.com), click **New +**, and select **Web Service**.
-2.  **Select Repo**: Connect your `Ai-in-gaming` repository.
-3.  **Settings**:
-    - **Name**: `ai-gaming-backend`
-    - **Language**: `Python 3`
-    - **Build Command**: `pip install -r backend/requirements.txt`
-    - **Start Command**: `gunicorn --chdir backend app:app`
+1.  **Log in to Render** and click **New > Web Service**.
+2.  **Connect your GitHub Repository**: `Ai-in-gaming`.
+3.  **Configure Settings**:
+    -   **Name**: `ai-gaming-backend`
+    -   **Environment**: `Python 3`
+    -   **Region**: (Choose closest to you)
+    -   **Build Command**: `pip install -r backend/requirements.txt`
+    -   **Start Command**: `gunicorn --chdir backend app:app`
 4.  **Environment Variables**:
-    Click **Advanced** -> **Add Environment Variable**:
-    - `DATABASE_URL`: (Your Supabase URI)
-    - `GROQ_API_KEY`: (Your AI Key)
-    - `SECRET_KEY`: (A random string)
+    -   `DATABASE_URL`: Your Supabase connection string.
+    -   `GROQ_API_KEY`: Your Groq API key.
+    -   `SECRET_KEY`: A long random string.
+5.  **Wait for Deployment**: Once "Live", copy your backend URL (e.g., `https://ai-gaming-backend.onrender.com`).
 
 ---
 
-## 🔵 Part 2: Frontend on Vercel
+## 🔵 Part 2: Configure Frontend API Discovery
 
-Vercel is best for static files. Note: Since we are using Ginger templates, the most efficient way to use Vercel is to host your `static` assets there for lightning-fast loading.
+Before deploying to Vercel, you must point the frontend to your Render URL.
 
-### 1. Deployment Steps
-1.  **Connect GitHub**: Log in to [Vercel](https://vercel.com) and import your repository.
-2.  **Settings**:
-    - **Framework Preset**: `Other`
-    - **Root Directory**: `frontend`
-3.  **Deploy**: Vercel will host your `static/` folder on a global CDN.
+1.  Open `frontend/static/js/config.js`.
+2.  Update the `API_BASE_URL`:
+    ```javascript
+    const CONFIG = {
+        API_BASE_URL: "https://your-render-app-url.onrender.com" // REPLACE THIS
+    };
+    ```
+3.  **Commit and Push** this change to GitHub.
 
 ---
 
-## ⚠️ Important Note on "Split" Deployment
-Since your app is a "Monolith" (Flask serves the HTML), hosting part on Vercel and part on Render is usually done by:
-1.  Hosting the **Entire Flask App on Render** (Easiest and recommended).
-2.  **OR** Converting the frontend to a decoupled React/Vue app (Requires rewrite).
+## 🟡 Part 3: Deploy Frontend (Vercel)
 
-**My recommendation**: Use **Render** for the entire project for now. If you want to proceed with the split, let me know and I will help you refactor the routes to be a pure API! 🟡
+1.  **Log in to Vercel** and click **Add New > Project**.
+2.  **Import your GitHub Repository**: `Ai-in-gaming`.
+3.  **Project Settings**:
+    -   **Framework Preset**: `Other` (or `Vite/React` if prompted, but `Other` is fine for static).
+    -   **Root Directory**: Click "Edit" and select the `frontend` folder.
+4.  **Click Deploy**.
+5.  Vercel will provide a URL (e.g., `https://ai-gaming-frontend.vercel.app`).
+
+---
+
+## 🔒 Security Note: CORS
+The backend is configured to accept requests with credentials. Ensure your `SECRET_KEY` is consistent. If you face "CORS" errors, double-check that `config.js` has the EXACT Render URL (no trailing slash).
+
+---
+
+## ✅ Verification
+1.  Visit your Vercel URL.
+2.  Try to Sign Up.
+3.  If successful, you will be redirected to the Persona page, confirming the Frontend-Backend bridge is active!

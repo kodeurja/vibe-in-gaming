@@ -6,3 +6,4 @@ requests
 groq
 psycopg2-binary
 gunicorn
+flask-cors

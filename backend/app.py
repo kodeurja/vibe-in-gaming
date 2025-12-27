@@ -1,5 +1,6 @@
 import os
 from flask import Flask, render_template, url_for, flash, redirect, request, jsonify
+from flask_cors import CORS
 from datetime import datetime
 from flask_login import LoginManager, login_user, current_user, logout_user, login_required
 from dotenv import load_dotenv
@@ -17,9 +18,14 @@ ai_engine = AIEngine()
 app = Flask(__name__, 
             template_folder='../frontend/templates', 
             static_folder='../frontend/static')
+CORS(app, supports_credentials=True)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default-dev-key')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///site.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Cross-domain session settings
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SECURE'] = True
 
 db.init_app(app)
 
@@ -31,6 +37,17 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 # --- Helpers ---
+
+@app.route("/api/user_status")
+def user_status():
+    if current_user.is_authenticated:
+        persona = Persona.query.filter_by(user_id=current_user.id).first()
+        return jsonify({
+            "authenticated": True, 
+            "username": current_user.username,
+            "has_persona": persona is not None
+        })
+    return jsonify({"authenticated": False})
 
 def get_or_create_game_state(user_id):
     state = GameState.query.filter_by(user_id=user_id).first()
@@ -45,59 +62,46 @@ def get_or_create_game_state(user_id):
 @app.route("/")
 @app.route("/home")
 def home():
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
-    return render_template('landing.html')
+    return jsonify({"message": "API is running. Connect via frontend."})
 
-@app.route("/signup", methods=['GET', 'POST'])
+@app.route("/signup", methods=['POST'])
 def signup():
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
+    data = request.json or request.form
+    username = data.get('username')
+    password = data.get('password')
+    
+    user = User.query.filter_by(username=username).first()
+    if user:
+        return jsonify({"success": False, "message": "Username already exists."}), 400
         
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        
-        user = User.query.filter_by(username=username).first()
-        if user:
-            flash('Username already exists.', 'danger')
-            return redirect(url_for('home'))
-            
-        hashed_password = generate_password_hash(password, method='scrypt')
-        new_user = User(username=username, password=hashed_password)
-        
-        try:
-            db.session.add(new_user)
-            db.session.commit()
-            login_user(new_user)
-            return redirect(url_for('create_persona'))
-        except:
-             flash('An error occurred.', 'danger')
+    hashed_password = generate_password_hash(password, method='scrypt')
+    new_user = User(username=username, password=hashed_password)
+    
+    try:
+        db.session.add(new_user)
+        db.session.commit()
+        login_user(new_user)
+        return jsonify({"success": True, "message": "Signup successful.", "redirect": "persona.html"})
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
 
-    return render_template('landing.html', mode='signup')
-
-@app.route("/login", methods=['GET', 'POST'])
+@app.route("/login", methods=['POST'])
 def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
-
-    if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        
-        user = User.query.filter_by(username=username).first()
-        if user and check_password_hash(user.password, password):
-            login_user(user)
-            return redirect(url_for('dashboard'))
-        else:
-            flash('Login Unsuccessful.', 'danger')
-            
-    return render_template('landing.html', mode='login')
+    data = request.json or request.form
+    username = data.get('username')
+    password = data.get('password')
+    
+    user = User.query.filter_by(username=username).first()
+    if user and check_password_hash(user.password, password):
+        login_user(user, remember=True)
+        return jsonify({"success": True, "message": "Login successful.", "redirect": "hub.html"})
+    else:
+        return jsonify({"success": False, "message": "Login Unsuccessful."}), 401
 
 @app.route("/logout")
 def logout():
     logout_user()
-    return redirect(url_for('home'))
+    return jsonify({"success": True, "message": "Logged out."})
 
 @app.route("/dashboard")
 @login_required
@@ -111,10 +115,9 @@ def roadmap():
     """Learning Roadmap Section."""
     return render_template('roadmap.html')
 
-@app.route("/game_dashboard")
+@app.route("/api/game_state")
 @login_required
-def game_dashboard():
-    """The original 6-gate game dashboard."""
+def game_state_api():
     state = get_or_create_game_state(current_user.id)
     steps = [
         {"id": 1, "label": "GATE 1"},
@@ -124,15 +127,20 @@ def game_dashboard():
         {"id": 5, "label": "GATE 5"},
         {"id": 6, "label": "GATE 6"}
     ]
-    return render_template('game_dashboard.html', state=state, steps=steps)
+    return jsonify({
+        "current_step": state.current_step,
+        "current_cycle": state.current_cycle,
+        "steps": steps
+    })
 
-@app.route("/create_persona", methods=['GET', 'POST'])
+@app.route("/api/persona", methods=['GET', 'POST'])
 @login_required
-def create_persona():
+def persona_api():
     if request.method == 'POST':
-        name = request.form.get('name')
-        style = request.form.get('style')
-        gender = request.form.get('gender')
+        data = request.json or request.form
+        name = data.get('name')
+        style = data.get('style')
+        gender = data.get('gender')
         
         persona = Persona.query.filter_by(user_id=current_user.id).first()
         if not persona:
@@ -143,10 +151,16 @@ def create_persona():
             persona.avatar_data = {'style': style, 'gender': gender}
             
         db.session.commit()
-        return redirect(url_for('dashboard'))
+        return jsonify({"success": True, "message": "Persona saved.", "redirect": "hub.html"})
 
     persona = Persona.query.filter_by(user_id=current_user.id).first()
-    return render_template('persona.html', persona=persona)
+    if persona:
+         return jsonify({
+             "exists": True,
+             "name": persona.name,
+             "avatar_data": persona.avatar_data
+         })
+    return jsonify({"exists": False, "username": current_user.username})
 
 
 @app.route("/quiz")
@@ -225,21 +239,29 @@ def start_quiz():
     
     return jsonify({"success": True, "quiz_id": new_quiz.id})
 
+@app.route("/api/quiz/<int:quiz_id>")
+@login_required
+def get_quiz_data(quiz_id):
+    quiz = QuizLog.query.get_or_404(quiz_id)
+    if quiz.user_id != current_user.id:
+        return jsonify({"success": False, "message": "Access Denied"}), 403
+    return jsonify({
+        "success": True,
+        "quiz_id": quiz.id,
+        "questions": quiz.questions
+    })
+
 @app.route("/quiz/play/<int:quiz_id>")
 @login_required
 def play_quiz(quiz_id):
-    quiz = QuizLog.query.get_or_404(quiz_id)
-    if quiz.user_id != current_user.id:
-        return redirect(url_for('game_dashboard'))
-    state = get_or_create_game_state(current_user.id)
-    return render_template('quiz.html', quiz=quiz, state=state)
+    return redirect(f"/quiz.html?quiz_id={quiz_id}")
 
 @app.route("/api/submit_quiz", methods=['POST'])
 @login_required
 def submit_quiz():
     data = request.json
     quiz_id = data.get('quiz_id')
-    answers = data.get('answers') # List of indices
+    answers = data.get('answers')
     
     quiz = QuizLog.query.get(quiz_id)
     if not quiz:
@@ -247,62 +269,30 @@ def submit_quiz():
 
     questions = quiz.questions
     score = 0
-    correct_count = 0
-    
-    results = []
-
     for i, q in enumerate(questions):
         user_ans = answers[i]
-        correct_ans = q['correct_index']
-        is_correct = (user_ans == correct_ans)
-        
-        if is_correct:
+        correct_ans = q.get('correct_index') or q.get('answer')
+        if (user_ans == correct_ans):
             score += 10
-            correct_count += 1
-            # Track history to prevent repeat
-            # check if exists
-            exists = QuestionHistory.query.filter_by(user_id=current_user.id, question_hash=q['question']).first()
-            if not exists:
-                qh = QuestionHistory(user_id=current_user.id, question_hash=q['question'], topic='AI', is_correct=True)
-                db.session.add(qh)
-        
-        results.append({
-            "question_index": i,
-            "is_correct": is_correct,
-            "correct_option": correct_ans
-        })
         
     quiz.score = score
     db.session.commit()
     
-    # RULE: 5/5 to unlock
-    # RULE: Relaxed - Always pass to puzzle
-    passed = True # (correct_count == 5)
-    
-    if passed:
-        # Unlock Puzzle
-        state = get_or_create_game_state(current_user.id)
-        current_gate_num = state.current_step
-        
-        # Mark Gate as Unlocked (status stored in GameState for now as step)
-        # Using GameState step logic: step 1 = Gate 1 Locked -> Quiz Passed -> Gate 1 Unlocked (or show puzzle)
-        # We need to distinguish between "Quiz Passed, Puzzle Pending"
-        # For simplicity: Passing Quiz redirects to Puzzle View
-        return jsonify({"success": True, "passed": True, "redirect": url_for('puzzle_view', step=current_gate_num)})
-    else:
-        return jsonify({"success": True, "passed": False, "results": results})
+    state = get_or_create_game_state(current_user.id)
+    return jsonify({
+        "success": True, 
+        "passed": True, 
+        "redirect": f"/puzzle.html?step={state.current_step}"
+    })
 
-@app.route("/puzzle/<int:step>")
+@app.route("/api/puzzle/<int:step>")
 @login_required
-def puzzle_view(step):
+def get_puzzle_data(step):
     state = get_or_create_game_state(current_user.id)
     if step > state.current_step:
-        flash("Gate Locked. Complete the Quiz first.", "danger")
-        return redirect(url_for('game_dashboard'))
+        return jsonify({"success": False, "message": "Gate Locked"}), 403
         
-    # Check for existing log
     log = PuzzleLog.query.filter_by(user_id=current_user.id, cycle=state.current_cycle, step=step).first()
-    
     if not log:
         params = ai_engine.generate_puzzle_data(step, state.current_cycle)
         log = PuzzleLog(
@@ -315,7 +305,17 @@ def puzzle_view(step):
         db.session.add(log)
         db.session.commit()
     
-    return render_template('puzzle.html', puzzle_data=log.puzzle_data, puzzle_type=log.puzzle_type, step=step)
+    return jsonify({
+        "success": True,
+        "puzzle_data": log.puzzle_data,
+        "puzzle_type": log.puzzle_type,
+        "step": step
+    })
+
+@app.route("/puzzle/<int:step>")
+@login_required
+def puzzle_view(step):
+    return redirect(f"/puzzle.html?step={step}")
 
 @app.route("/api/reboot_puzzle", methods=['POST'])
 @login_required

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galactic Gateway</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <main class="content">
+            <div class="landing-page">
+                <div class="hero-section">
+                    <h1>Welcome to <span class="highlight">Galactic Gateway</span></h1>
+                    <p>Traverse the Stars. Master the Protocol.</p>
+                </div>
+
+                <div class="auth-container">
+                    <div class="auth-toggle">
+                        <button id="btn-login" class="active" onclick="showForm('login')">Login</button>
+                        <button id="btn-signup" onclick="showForm('signup')">Sign Up</button>
+                    </div>
+
+                    <div id="login-form" class="auth-form">
+                        <form>
+                            <div class="form-group">
+                                <label>Username</label>
+                                <input type="text" name="username" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Password</label>
+                                <input type="password" name="password" required>
+                            </div>
+                            <button type="submit" class="btn-primary">Enter the Void</button>
+                        </form>
+                    </div>
+
+                    <div id="signup-form" class="auth-form" style="display: none;">
+                        <form>
+                            <div class="form-group">
+                                <label>Choose a Username</label>
+                                <input type="text" name="username" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Create Password</label>
+                                <input type="password" name="password" required>
+                            </div>
+                            <button type="submit" class="btn-primary">Initiate Sequence</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function showForm(formName) {
+            document.getElementById('login-form').style.display = formName === 'login' ? 'block' : 'none';
+            document.getElementById('signup-form').style.display = formName === 'signup' ? 'block' : 'none';
+            document.getElementById('btn-login').classList.toggle('active', formName === 'login');
+            document.getElementById('btn-signup').classList.toggle('active', formName === 'signup');
+        }
+    </script>
+    <script type="module" src="static/js/auth.js"></script>
+    <script type="module" src="static/js/login.js"></script>
+</body>
+
+</html>

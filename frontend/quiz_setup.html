@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Gauntlet | Gate of Intelligence</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <nav id="navbar" class="navbar">
+            <div class="logo">GATE OF INTELLIGENCE</div>
+            <ul class="nav-links">
+                <li><a href="hub.html">Hub</a></li>
+                <li><a href="roadmap.html">Road Map</a></li>
+                <li><a href="game_dashboard.html">My Game</a></li>
+                <li><a href="#" id="logout-btn" class="btn-logout">Logout</a></li>
+            </ul>
+        </nav>
+
+        <main class="content">
+            <div class="dashboard-container">
+                <div class="header-section">
+                    <h1>THE GAUNTLET</h1>
+                    <p class="subtitle">Select Difficulty Protocol</p>
+                </div>
+
+                <div class="quiz-container">
+                    <div class="difficulty-grid">
+                        <div class="gate-card difficulty-card" onclick="selectDifficulty('Beginner')">
+                            <div class="gate-icon">🟢</div>
+                            <h3>BEGINNER</h3>
+                            <p>Basic AI Concepts</p>
+                        </div>
+                        <div class="gate-card difficulty-card selected" onclick="selectDifficulty('Intermediate')">
+                            <div class="gate-icon">🟡</div>
+                            <h3>INTERMEDIATE</h3>
+                            <p>Core ML & Logic</p>
+                        </div>
+                        <div class="gate-card difficulty-card" onclick="selectDifficulty('Advanced')">
+                            <div class="gate-icon">🔴</div>
+                            <h3>ADVANCED</h3>
+                            <p>Deep Learning & Ethics</p>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; justify-content: center; margin-top: 3rem;">
+                        <button id="initiate-btn" class="btn-play">INITIATE SEQUENCE</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Custom Access Modal -->
+    <div class="custom-modal-overlay" id="modal-overlay">
+        <div class="custom-modal">
+            <div class="modal-icon" id="modal-icon">🔒</div>
+            <div class="modal-title" id="modal-title">SYSTEM NOTICE</div>
+            <div class="modal-message" id="modal-message">Notification details here...</div>
+            <button class="modal-btn" id="modal-btn">ACKNOWLEDGE</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import Auth from './static/js/auth.js';
+        import CONFIG from './static/js/config.js';
+
+        let selectedDiff = 'Intermediate';
+
+        window.selectDifficulty = (diff) => {
+            selectedDiff = diff;
+            document.querySelectorAll('.difficulty-card').forEach(c => c.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+        };
+
+        function showCustomModal(title, message, isSuccess, callback) {
+            const overlay = document.getElementById('modal-overlay');
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('modal-icon').innerText = isSuccess ? '🔓' : '🔒';
+            overlay.style.display = 'flex';
+            setTimeout(() => overlay.classList.add('active'), 10);
+
+            document.getElementById('modal-btn').onclick = () => {
+                overlay.classList.remove('active');
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    if (callback) callback();
+                }, 300);
+            };
+        }
+
+        document.getElementById('initiate-btn').onclick = async () => {
+            const btn = document.getElementById('initiate-btn');
+            btn.innerText = "INITIALIZING...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/start_quiz`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ difficulty: selectedDiff }),
+                    credentials: 'include'
+                });
+                const data = await res.json();
+                if (data.success) {
+                    window.location.href = `quiz.html?quiz_id=${data.quiz_id}`;
+                } else {
+                    showCustomModal("INITIALIZATION FAILED", ">> ERROR: UNABLE TO ESTABLISH NEURAL LINK. RETRY.", false);
+                    btn.innerText = "INITIATE SEQUENCE";
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                console.error(err);
+                showCustomModal("COMMUNICATION ERROR", ">> UPLINK TIMEOUT: " + err.message, false);
+                btn.innerText = "INITIATE SEQUENCE";
+                btn.disabled = false;
+            }
+        };
+    </script>
+    <style>
+        .difficulty-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+        }
+
+        .difficulty-card {
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .difficulty-card.selected {
+            border-color: var(--primary);
+            box-shadow: 0 0 20px var(--primary);
+            background: rgba(0, 243, 255, 0.1);
+        }
+
+        .btn-play {
+            background: #000;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            padding: 15px 50px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.2rem;
+            font-weight: bold;
+            letter-spacing: 3px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: pulsing-glow 2s infinite;
+        }
+
+        .btn-play:hover {
+            background: var(--primary);
+            color: #000;
+            box-shadow: 0 0 40px var(--primary);
+            transform: scale(1.05);
+        }
+
+        .btn-play:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            animation: none;
+        }
+
+        @keyframes pulsing-glow {
+            0% {
+                box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+                border-color: rgba(0, 243, 255, 0.5);
+            }
+
+            50% {
+                box-shadow: 0 0 30px rgba(0, 243, 255, 0.6);
+                border-color: rgba(0, 243, 255, 1);
+            }
+
+            100% {
+                box-shadow: 0 0 10px rgba(0, 243, 255, 0.2);
+                border-color: rgba(0, 243, 255, 0.5);
+            }
+        }
+    </style>
+</body>
+
+</html>

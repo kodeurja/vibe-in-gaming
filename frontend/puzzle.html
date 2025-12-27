@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Puzzle Gate | Gate of Intelligence</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="static/css/style.css">
+    <link rel="stylesheet" href="static/css/puzzle_styles.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <nav id="navbar" class="navbar">
+            <div class="logo">GATE OF INTELLIGENCE</div>
+            <ul class="nav-links">
+                <li><a href="hub.html">Hub</a></li>
+                <li><a href="roadmap.html">Road Map</a></li>
+                <li><a href="game_dashboard.html">My Game</a></li>
+                <li><a href="#" id="logout-btn" class="btn-logout">Logout</a></li>
+            </ul>
+        </nav>
+
+        <main class="content">
+            <div class="puzzle-gate-overlay" id="puzzle-screen">
+                <div class="puzzle-header">
+                    <div class="puzzle-info">
+                        <span class="tag" id="gate-tag">GATEWAY NODE --</span>
+                        <h1 id="puzzle-title" class="glitch-text">INITIALIZING...</h1>
+                        <p id="puzzle-desc">Synchronizing with neural engine...</p>
+                    </div>
+                    <div class="puzzle-controls">
+                        <button class="btn-hint" id="hint-btn">AI HINT</button>
+                        <button class="btn-retry" id="reboot-btn">REBOOT</button>
+                    </div>
+                </div>
+
+                <div class="puzzle-stage">
+                    <div id="puzzle-canvas-container" class="puzzle-canvas-container">
+                        <!-- Puzzle elements injected via JS -->
+                    </div>
+                </div>
+
+                <div id="puzzle-success-modal" class="puzzle-modal" style="display:none;">
+                    <div class="modal-content glass celebration">
+                        <div class="confetti-container"></div>
+                        <h2 class="animate-reveal">NODE SYNCHRONIZED</h2>
+                        <p class="animate-reveal" style="animation-delay: 0.2s;">Gateway stability 100%. Initializing
+                            hyper-jump sequence...</p>
+                        <button class="btn-primary animate-reveal pulsar-effect" id="finish-btn"
+                            style="animation-delay: 0.4s;">ENGAGE WARP</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="static/js/puzzles.js"></script>
+    <script type="module">
+        import Auth from './static/js/auth.js';
+        import CONFIG from './static/js/config.js';
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const step = urlParams.get('step');
+        let puzzleType, puzzleData;
+
+        async function init() {
+            if (!step) { window.location.href = 'game_dashboard.html'; return; }
+
+            const res = await fetch(`${CONFIG.API_BASE_URL}/api/puzzle/${step}`, { credentials: 'include' });
+            const data = await res.json();
+
+            if (data.success) {
+                puzzleType = data.puzzle_type;
+                puzzleData = data.puzzle_data;
+                document.getElementById('gate-tag').innerText = `GATEWAY NODE ${step}`;
+                document.getElementById('puzzle-title').innerText = puzzleData.title;
+                document.getElementById('puzzle-desc').innerText = puzzleData.description;
+
+                if (typeof PuzzleManager !== 'undefined') {
+                    PuzzleManager.init(puzzleType, step, puzzleData);
+                }
+            } else {
+                alert(data.message);
+                window.location.href = 'game_dashboard.html';
+            }
+        }
+
+        document.getElementById('finish-btn').onclick = async () => {
+            const res = await fetch(`${CONFIG.API_BASE_URL}/api/solve_puzzle`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ step: step }),
+                credentials: 'include'
+            });
+            const data = await res.json();
+            if (data.success) {
+                window.location.href = 'game_dashboard.html';
+            }
+        };
+
+        document.getElementById('hint-btn').onclick = async () => {
+            const btn = document.getElementById('hint-btn');
+            btn.innerText = "THINKING...";
+            btn.disabled = true;
+
+            const res = await fetch(`${CONFIG.API_BASE_URL}/api/puzzle_hint`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ step: step, puzzle_type: puzzleType }),
+                credentials: 'include'
+            });
+            const data = await res.json();
+            alert("AI HINT: " + data.hint);
+            btn.innerText = "AI HINT";
+            btn.disabled = false;
+        };
+
+        document.getElementById('reboot-btn').onclick = async () => {
+            if (confirm("REBOOT SYSTEM? This will regenerate a new puzzle.")) {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/reboot_puzzle`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ step: step }),
+                    credentials: 'include'
+                });
+                const data = await res.json();
+                if (data.success) location.reload();
+            }
+        };
+
+        init();
+    </script>
+</body>
+
+</html>

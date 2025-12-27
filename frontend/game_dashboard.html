@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gateway Dashboard | Gate of Intelligence</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <nav id="navbar" class="navbar">
+            <div class="logo">GATE OF INTELLIGENCE</div>
+            <ul class="nav-links">
+                <li><a href="hub.html">Hub</a></li>
+                <li><a href="roadmap.html">Road Map</a></li>
+                <li><a href="game_dashboard.html">My Game</a></li>
+                <li><a href="#" id="logout-btn" class="btn-logout">Logout</a></li>
+            </ul>
+        </nav>
+
+        <main class="content">
+            <div class="landing-page" style="text-align: left; padding: 2rem 4rem;">
+                <h1 style="font-size: 3rem; margin-bottom: 0.5rem; color: #fff;">GATEWAY DASHBOARD</h1>
+                <p id="user-status" style="color: var(--text-muted); letter-spacing: 2px;">SECURE CONNECTION ESTABLISHED
+                    // USER: LOADING...</p>
+            </div>
+
+            <div id="gates-grid" class="gates-container">
+                <!-- Gates Rendered by JS -->
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import Auth from './static/js/auth.js';
+        import CONFIG from './static/js/config.js';
+
+        const ICON_MAP = { 1: '💠', 2: '📝', 3: '⚙️', 4: '🧩', 5: '🌊', 6: '🧪' };
+
+        async function init() {
+            const authStatus = await Auth.checkStatus();
+            if (authStatus.authenticated) {
+                document.getElementById('user-status').textContent = `SECURE CONNECTION ESTABLISHED // USER: ${authStatus.username.toUpperCase()}`;
+            }
+
+            const res = await fetch(`${CONFIG.API_BASE_URL}/api/game_state`, { credentials: 'include' });
+            const data = await res.json();
+
+            const grid = document.getElementById('gates-grid');
+            grid.innerHTML = data.steps.map(step => {
+                let statusClass = 'locked';
+                let statusText = 'LOCKED';
+                if (step.id === data.current_step) { statusClass = 'active'; statusText = 'ACCESS GRANTED'; }
+                else if (step.id < data.current_step) { statusClass = 'completed'; statusText = 'SOLVED'; }
+
+                const clickAction = step.id <= data.current_step ? `onclick="window.location.href='quiz_setup.html?step=${step.id}'"` : '';
+
+                return `
+                    <div class="enhanced-gate-card gate-${step.id} ${statusClass}" ${clickAction}>
+                        <div class="gate-id">0${step.id}</div>
+                        <div class="gate-content">
+                            <div class="gate-icon-large">${ICON_MAP[step.id]}</div>
+                            <h3>GATE ${step.id}</h3>
+                            <div class="gate-status-badge">${statusText}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        init();
+    </script>
+</body>
+
+</html>

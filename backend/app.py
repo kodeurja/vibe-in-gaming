@@ -20,6 +20,21 @@ app = Flask(__name__,
             template_folder='../frontend', 
             static_folder='../frontend/static')
 
+# Global JSON Error Handler
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # Pass through HTTP errors
+    from werkzeug.exceptions import HTTPException
+    if isinstance(e, HTTPException):
+        return jsonify({"success": False, "message": e.description}), e.code
+    
+    # Handle non-HTTP exceptions (Internal Server Errors)
+    print(f"INTERNAL SERVER ERROR: {str(e)}")
+    return jsonify({
+        "success": False, 
+        "message": f"Server encountered an error. Check logs for details: {str(e)}"
+    }), 500
+
 # Dynamic CORS based on Environment
 frontend_url = os.getenv('FRONTEND_URL', '*')
 CORS(app, supports_credentials=True, origins=[frontend_url, "http://127.0.0.1:5500", "http://localhost:5500"])

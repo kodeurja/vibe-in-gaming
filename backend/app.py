@@ -40,8 +40,19 @@ frontend_url = os.getenv('FRONTEND_URL', '*')
 CORS(app, supports_credentials=True, origins=[frontend_url, "http://127.0.0.1:5500", "http://localhost:5500"])
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default-dev-key')
 db_url = os.getenv('DATABASE_URL', 'sqlite:///test.db')
-if db_url and db_url.startswith("postgres://") or db_url == "postgresql://": # Fix for some platforms
+
+if db_url and db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+# Masked logging to help debug malformed URIs without leaking passwords
+try:
+    from urllib.parse import urlparse
+    parsed = urlparse(db_url)
+    # Mask password
+    masked_url = f"{parsed.scheme}://{parsed.username}:****@{parsed.hostname}:{parsed.port}{parsed.path}"
+    print(f"DEBUG: Connecting to Database: {masked_url}")
+except Exception:
+    print("DEBUG: Could not parse DATABASE_URL for logging. Check for unencoded special characters in your password (like @ or #).")
 
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False

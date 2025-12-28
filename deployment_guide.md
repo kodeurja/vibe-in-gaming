@@ -20,6 +20,8 @@ This guide outlines how to host your backend on **Render** (as an API) and your 
     -   **Start Command**: `gunicorn --chdir backend app:app` (IMPORTANT: Ensure this is set correctly in settings)
 4.  **Environment Variables**:
     -   `DATABASE_URL`: Your Supabase connection string.
+        > [!IMPORTANT]
+        > If your password contains special characters like `@`, `#`, or `:`, you **MUST** URL-encode it (e.g., `@` becomes `%40`). Visit [urlencoder.org](https://www.urlencoder.org/) to encode your password.
     -   `GROQ_API_KEY`: Your Groq API key.
     -   `SECRET_KEY`: A long random string.
     -   `FRONTEND_URL`: Your Vercel URL (e.g., `https://ai-gaming-frontend.vercel.app`)

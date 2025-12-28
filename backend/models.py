@@ -22,7 +22,7 @@ class User(db.Model, UserMixin):
 
 class Persona(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     name = db.Column(db.String(50), nullable=False)
     avatar_data = db.Column(db.JSON, nullable=False, default={}) # Stores: gender, hair, eyes, etc.
     
@@ -31,7 +31,7 @@ class Persona(db.Model):
 
 class GameState(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     current_cycle = db.Column(db.Integer, default=1)
     current_step = db.Column(db.Integer, default=1) # 1-5 for puzzles, 6 for quiz
     completed_cycles = db.Column(db.Integer, default=0)
@@ -42,7 +42,7 @@ class GameState(db.Model):
 
 class PuzzleLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     cycle = db.Column(db.Integer, nullable=False)
     step = db.Column(db.Integer, nullable=False)
     puzzle_type = db.Column(db.String(50), nullable=False)
@@ -52,7 +52,7 @@ class PuzzleLog(db.Model):
 
 class QuizLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     cycle = db.Column(db.Integer, nullable=False)
     questions = db.Column(db.JSON, nullable=False) # AI generated Quiz JSON
     score = db.Column(db.Integer, default=0)
@@ -60,14 +60,14 @@ class QuizLog(db.Model):
 
 class GateProgress(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     gate_number = db.Column(db.Integer, nullable=False) # 1-6
     status = db.Column(db.String(20), default='locked') # locked, unlocked, solved
     last_updated = db.Column(db.DateTime, default=datetime.utcnow)
 
 class QuestionHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     question_hash = db.Column(db.String(64), nullable=False) # Unique identifier/hash of the question
     topic = db.Column(db.String(50))
     is_correct = db.Column(db.Boolean, default=False)

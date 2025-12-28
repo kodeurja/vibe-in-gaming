@@ -66,4 +66,6 @@ The backend is configured to accept requests with credentials. Ensure your `SECR
 1.  Visit your Vercel URL.
 2.  Check the browser console (F12). You should no longer see `favicon.ico` or `__BACKEND_URL__` errors.
 3.  Try to Sign Up. If it works, the system is fully healthy!
-3.  If successful, you will be redirected to the Persona page, confirming the Frontend-Backend bridge is active!
+
+> [!IMPORTANT]
+> If you just added or changed an **Environment Variable** on Vercel, you **must** redeploy for it to take effect. Go to the "Deployments" tab, click the three dots `...` on the latest build, and select **Redeploy**.

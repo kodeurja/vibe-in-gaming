@@ -12,10 +12,12 @@ class User(db.Model, UserMixin):
     password = db.Column(db.String(60), nullable=False)
     
     # Relationships
-    persona = db.relationship('Persona', backref='user', uselist=False, lazy=True)
-    game_state = db.relationship('GameState', backref='user', uselist=False, lazy=True)
-    puzzle_logs = db.relationship('PuzzleLog', backref='user', lazy=True)
-    quiz_logs = db.relationship('QuizLog', backref='user', lazy=True)
+    persona = db.relationship('Persona', back_populates='user', uselist=False, lazy=True)
+    game_state = db.relationship('GameState', back_populates='user', uselist=False, lazy=True)
+    puzzle_logs = db.relationship('PuzzleLog', back_populates='user', lazy=True)
+    quiz_logs = db.relationship('QuizLog', back_populates='user', lazy=True)
+    gate_progress = db.relationship('GateProgress', back_populates='user', lazy=True)
+    question_history = db.relationship('QuestionHistory', back_populates='user', lazy=True)
 
     def __repr__(self):
         return f"User('{self.username}')"
@@ -25,6 +27,8 @@ class Persona(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     name = db.Column(db.String(50), nullable=False)
     avatar_data = db.Column(db.JSON, nullable=False, default={}) # Stores: gender, hair, eyes, etc.
+    
+    user = db.relationship('User', back_populates='persona')
     
     def __repr__(self):
         return f"Persona('{self.name}', User: {self.user_id})"
@@ -36,6 +40,8 @@ class GameState(db.Model):
     current_step = db.Column(db.Integer, default=1) # 1-5 for puzzles, 6 for quiz
     completed_cycles = db.Column(db.Integer, default=0)
     last_updated = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', back_populates='game_state')
 
     def __repr__(self):
         return f"GameState(User: {self.user_id}, Cycle: {self.current_cycle}, Step: {self.current_step})"
@@ -50,6 +56,8 @@ class PuzzleLog(db.Model):
     solved = db.Column(db.Boolean, default=False)
     solved_at = db.Column(db.DateTime, nullable=True)
 
+    user = db.relationship('User', back_populates='puzzle_logs')
+
 class QuizLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -58,12 +66,16 @@ class QuizLog(db.Model):
     score = db.Column(db.Integer, default=0)
     completed_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    user = db.relationship('User', back_populates='quiz_logs')
+
 class GateProgress(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     gate_number = db.Column(db.Integer, nullable=False) # 1-6
     status = db.Column(db.String(20), default='locked') # locked, unlocked, solved
     last_updated = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', back_populates='gate_progress')
 
 class QuestionHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -72,3 +84,5 @@ class QuestionHistory(db.Model):
     topic = db.Column(db.String(50))
     is_correct = db.Column(db.Boolean, default=False)
     attempted_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('User', back_populates='question_history')

@@ -278,8 +278,17 @@ def solve_puzzle():
     if log: # Should always be true now
         log.solved = True
         log.solved_at = datetime.utcnow()
+        
+        # DEBUG: Log the comparison
+        print(f"DEBUGGING SOLVE: Request Step: {step} (Type: {type(step)})")
+        print(f"DEBUGGING SOLVE: DB State Step: {state.current_step} (Type: {type(state.current_step)})")
+        
         if state.current_step == step:
             state.current_step += 1
+            print("DEBUGGING SOLVE: Incrementing Step to", state.current_step)
+        else:
+            print("DEBUGGING SOLVE: Step Mismatch - No Increment")
+            
         db.session.commit()
         
         print(f"DEBUG: Puzzle {step} solved. New current_step: {state.current_step}")

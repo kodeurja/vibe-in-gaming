@@ -254,13 +254,17 @@ def solve_puzzle():
             state.current_step += 1
         db.session.commit()
         
+        print(f"DEBUG: Puzzle {step} solved. New current_step: {state.current_step}")
+        
         # After completing puzzle, go to next gate's quiz (or dashboard if done)
         if state.current_step <= 6:
             # Go to next gate's quiz with step parameter
             next_url = f"quiz_setup.html?step={state.current_step}"
+            print(f"DEBUG: Navigating to {next_url}")
         else:
             # All 6 gates completed, back to dashboard
             next_url = "game_dashboard.html"
+            print(f"DEBUG: All gates complete, going to dashboard")
             
         return jsonify({"success": True, "next_url": next_url})
     

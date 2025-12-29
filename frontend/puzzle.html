@@ -97,7 +97,9 @@
                 credentials: 'include'
             });
             const data = await res.json();
+            console.log("Puzzle solved response:", data);
             if (data.success) {
+                console.log("Navigating to:", data.next_url);
                 window.location.href = data.next_url;
             }
         };

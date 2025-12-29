@@ -256,6 +256,8 @@ def solve_puzzle():
             user_id=current_user.id, 
             cycle=state.current_cycle, 
             step=step,
+            puzzle_type="manual_verification",
+            puzzle_data={},
             solved=False # Will be set to true below
         )
         db.session.add(log)

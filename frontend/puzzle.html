@@ -98,7 +98,7 @@
             });
             const data = await res.json();
             if (data.success) {
-                window.location.href = 'game_dashboard.html';
+                window.location.href = data.next_url;
             }
         };
 

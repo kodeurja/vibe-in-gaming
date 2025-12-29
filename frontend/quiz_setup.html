@@ -101,11 +101,17 @@
             btn.innerText = "INITIALIZING...";
             btn.disabled = true;
 
+            const urlParams = new URLSearchParams(window.location.search);
+            const step = urlParams.get('step');
+
             try {
                 const res = await fetch(`${CONFIG.API_BASE_URL}/api/start_quiz`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ difficulty: selectedDiff }),
+                    body: JSON.stringify({
+                        difficulty: selectedDiff,
+                        step: step
+                    }),
                     credentials: 'include'
                 });
                 const data = await res.json();

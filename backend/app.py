@@ -281,9 +281,10 @@ def quiz_setup():
 def start_quiz():
     data = request.json
     difficulty = data.get('difficulty', 'Intermediate')
+    step = data.get('step')
     
     # Generate 5 questions via AI Engine
-    questions = ai_engine.generate_quiz(difficulty)
+    questions = ai_engine.generate_quiz(difficulty, step)
     
     # Store in QuizLog (temporary for this session)
     state = get_or_create_game_state(current_user.id)

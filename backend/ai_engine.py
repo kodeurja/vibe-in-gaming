@@ -33,13 +33,15 @@ class PuzzleEngine:
         
         return {"type": "tower-of-hanoi", "data": data}
 
-    def generate_quiz(self, difficulty):
+    def generate_quiz(self, difficulty, step=None):
         """
-        Generates 5 unique quiz questions based on difficulty.
+        Generates 5 unique quiz questions based on difficulty and gate step.
         Topics: AI, Machine Learning, Deep Learning, Python, GenAI.
         """
+        context = f"for Gate {step}" if step else "General Knowledge"
         prompt = f"""
         Generate 5 unique, non-repeating quiz questions about AI, ML, Deep Learning, Python, and GenAI.
+        Context: {context}.
         Difficulty: {difficulty}.
         Format: JSON Array of objects with keys: 'question', 'options' (list of 4 strings), 'correct_index' (0-3).
         Ensure questions are conceptual and engaging.
@@ -144,8 +146,8 @@ class AIEngine:
     def generate_puzzle_data(self, step, cycle):
         return self.puzzle_engine.generate_puzzle_data(step, cycle)
 
-    def generate_quiz(self, difficulty):
-        return self.puzzle_engine.generate_quiz(difficulty)
+    def generate_quiz(self, difficulty, step=None):
+        return self.puzzle_engine.generate_quiz(difficulty, step)
 
     def generate_quiz_data(self, cycle):
         return self.quiz_generator.generate(cycle)

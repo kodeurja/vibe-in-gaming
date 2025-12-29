@@ -8,7 +8,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="static/css/style.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
@@ -72,7 +72,7 @@
     </div>
 
     <script type="module">
-        import Auth from './static/js/auth.js';
+        import Auth from './js/auth.js';
         document.addEventListener('DOMContentLoaded', async () => {
             const status = await Auth.checkStatus();
             if (status.authenticated) {

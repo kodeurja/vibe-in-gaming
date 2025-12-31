@@ -7,7 +7,11 @@ from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # Load environment variables
-load_dotenv()
+basedir = os.path.abspath(os.path.dirname(__file__))
+# Priority 1: .env in backend/ (for local dev when run from root)
+# Priority 2: .env in root (already handled by default if run from root)
+load_dotenv(os.path.join(basedir, '.env'))
+load_dotenv(os.path.join(os.path.dirname(basedir), '.env'))
 
 from models import db, User, Persona, GameState, PuzzleLog, QuizLog, GateProgress, QuestionHistory
 from ai_engine import AIEngine
@@ -42,15 +46,22 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default-dev-key')
 
 # Check if running on Vercel (Read-Only FS)
 # Check if running on Vercel (Read-Only FS)
+# Check Database URL
+db_url = os.getenv('DATABASE_URL')
+
 if os.environ.get('VERCEL'):
-    # STRICT MODE: User requested Supabase only.
-    db_url = os.getenv('DATABASE_URL')
     if not db_url:
         raise RuntimeError("CRITICAL: DATABASE_URL is missing on Vercel. Please add your Supabase connection string to Vercel Environment Variables.")
     print("DEBUG: Running on Vercel with Supabase")
 else:
-    # Local fallback for development
-    db_url = os.getenv('DATABASE_URL', 'sqlite:///site.db')
+    # Locally we also want to ensure Supabase is used if user requested it
+    if not db_url:
+        # If user explicitly wants Supabase, don't allow falling back to SQLite without warning
+        print("WARNING: DATABASE_URL not found in .env. Falling back to local site.db (SQLite).")
+        print("If you want Supabase locally, add DATABASE_URL to backend/.env")
+        db_url = 'sqlite:///site.db'
+    else:
+        print("DEBUG: Running Locally with Supabase/Remote DB")
 
 if db_url and db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
@@ -392,10 +403,20 @@ def submit_quiz():
     # Redirect to the specific step if provided (context preservation), else highest unlocked
     target_step = data.get('step') or state.current_step
     
+    # Requirement: 5 questions total, must answer 3 correct (30 points) to pass
+    passed = score >= 30
+    
+    if passed:
+        redirect_url = f"puzzle.html?step={target_step}"
+    else:
+        # Retry logic: reload the same gate's setup
+        redirect_url = f"quiz_setup.html?step={target_step}"
+    
     return jsonify({
         "success": True, 
-        "passed": True, 
-        "redirect": f"puzzle.html?step={target_step}"
+        "passed": passed, 
+        "score": score,
+        "redirect": redirect_url
     })
 
 @app.route("/api/puzzle/<int:step>")

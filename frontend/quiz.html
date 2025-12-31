@@ -157,7 +157,7 @@
                 });
             } else {
                 showCustomModal("VERIFICATION FAILED", ">> CRITICAL ERROR: ACCESS DENIED. RETRYING SEQUENCE.", false, () => {
-                    window.location.href = "quiz_setup.html";
+                    window.location.href = data.redirect || `quiz_setup.html?step=${step}`;
                 });
             }
         }

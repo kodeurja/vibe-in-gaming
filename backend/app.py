@@ -20,7 +20,13 @@ def sanitize_db_url(url):
     Robustly handles special characters in DB passwords (like '@' or '#').
     Example: postgresql://user:p@ssword@host:5432/db
     """
-    if not url or not url.startswith("postgres"):
+    if not url:
+        return url
+        
+    # Standardize: trim whitespace and common quotes
+    url = url.strip().strip('"').strip("'")
+    
+    if not url.startswith("postgres"):
         return url
     
     # Standardize scheme
@@ -28,18 +34,20 @@ def sanitize_db_url(url):
         url = url.replace("postgres://", "postgresql://", 1)
         
     try:
-        # Split scheme
+        # Split scheme from the rest
         scheme, rest = url.split("://", 1)
         
-        # The password part is between the first ':' and the LAST '@'
+        # We need to separate credentials from the host part.
+        # The credentials start after '://' and end at the LAST '@' before the host/port.
         if "@" in rest:
-            # Find the last '@' which separates credentials from host
+            # Finding the last '@' helps identify where the host starts
+            # (passwords can contain @, but hosts generally shouldn't)
             creds, host_part = rest.rsplit("@", 1)
             
             if ":" in creds:
                 user, password = creds.split(":", 1)
-                # Re-encode the password to handle special chars like '@', '#', etc.
-                # quote_plus is safer than quote for passwords
+                # Re-encode only the password part to handle special chars like '@', '#', etc.
+                # quote_plus handles spaces and special chars safely.
                 clean_url = f"{scheme}://{user}:{quote_plus(password)}@{host_part}"
                 return clean_url
     except Exception as e:

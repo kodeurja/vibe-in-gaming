@@ -13,8 +13,14 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, '.env'))
 load_dotenv(os.path.join(os.path.dirname(basedir), '.env'))
 
-from models import db, User, Persona, GameState, PuzzleLog, QuizLog, GateProgress, QuestionHistory
-from ai_engine import AIEngine
+try:
+    from backend.models import db, User, Persona, GameState, PuzzleLog, QuizLog, GateProgress, QuestionHistory
+    from backend.ai_engine import AIEngine
+    print("DEBUG: Using absolute imports (Vercel mode)")
+except ImportError:
+    from models import db, User, Persona, GameState, PuzzleLog, QuizLog, GateProgress, QuestionHistory
+    from ai_engine import AIEngine
+    print("DEBUG: Using relative imports (Local mode)")
 
 # Initialize AI Engine
 ai_engine = AIEngine()
@@ -48,36 +54,34 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default-dev-key')
 # Check if running on Vercel (Read-Only FS)
 # Check Database URL
 db_url = os.getenv('DATABASE_URL')
+config_error = None
 
 if os.environ.get('VERCEL'):
     if not db_url:
-        raise RuntimeError("CRITICAL: DATABASE_URL is missing on Vercel. Please add your Supabase connection string to Vercel Environment Variables.")
-    print("DEBUG: Running on Vercel with Supabase")
+        config_error = "DATABASE_URL is missing. Please add your Supabase connection string to Vercel Environment Variables."
+        print(f"CRITICAL: {config_error}")
+    else:
+        print("DEBUG: Running on Vercel with Supabase")
 else:
     # Locally we also want to ensure Supabase is used if user requested it
     if not db_url:
-        # If user explicitly wants Supabase, don't allow falling back to SQLite without warning
-        print("WARNING: DATABASE_URL not found in .env. Falling back to local site.db (SQLite).")
-        print("If you want Supabase locally, add DATABASE_URL to backend/.env")
+        print("WARNING: DATABASE_URL not found. Falling back to SQLite.")
         db_url = 'sqlite:///site.db'
     else:
         print("DEBUG: Running Locally with Supabase/Remote DB")
 
+# Final URI Check
 if db_url and db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
 
-# Masked logging to help debug malformed URIs without leaking passwords
-try:
-    from urllib.parse import urlparse
-    parsed = urlparse(db_url)
-    # Mask password
-    masked_url = f"{parsed.scheme}://{parsed.username}:****@{parsed.hostname}:{parsed.port}{parsed.path}"
-    print(f"DEBUG: Connecting to Database: {masked_url}")
-except Exception:
-    print("DEBUG: Could not parse DATABASE_URL for logging. Check for unencoded special characters in your password (like @ or #).")
-
-app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url or 'sqlite:///' # Fallback to avoid None error
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Global check for Config Errors (Blocks API calls with 500 but returns valid JSON)
+@app.before_request
+def check_config():
+    if config_error and request.path.startswith('/api/'):
+        return jsonify({"success": False, "message": config_error}), 500
 
 # Cross-domain session settings
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'

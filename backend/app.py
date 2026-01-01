@@ -96,7 +96,21 @@ def handle_exception(e):
 
 # Dynamic CORS based on Environment
 frontend_url = os.getenv('FRONTEND_URL', '*')
-CORS(app, supports_credentials=True, origins=[frontend_url, "http://127.0.0.1:5500", "http://localhost:5500"])
+
+# Allow all Vercel preview URLs
+allowed_origins = [
+    frontend_url,
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+    "https://ai-gaming-frontend.vercel.app",
+    "https://ai-gaming-frontend-nziaz27rx-us-projects-487517aa.vercel.app"
+]
+
+# Configure CORS with regex support for all Vercel deployments
+CORS(app, 
+     supports_credentials=True, 
+     origins=allowed_origins,
+     origin_regex=r"https://.*\.vercel\.app$")
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default-dev-key')
 
 # Check if running on Vercel (Read-Only FS)

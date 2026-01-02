@@ -8,7 +8,7 @@ if (apiBase && !isLocal && (apiBase.includes('localhost') || apiBase.includes('1
 }
 
 const CONFIG = {
-    API_BASE_URL: apiBase || (isLocal ? "http://localhost:5000" : "")
+    API_BASE_URL: (isLocal ? (apiBase || "http://localhost:5000") : (apiBase || ""))
 };
 
 export default CONFIG;

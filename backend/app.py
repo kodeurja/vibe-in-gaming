@@ -454,34 +454,47 @@ def submit_quiz():
         return jsonify({"success": False})
 
     questions = quiz.questions
-    score = 0
+    correct_count = 0
+    
     for i, q in enumerate(questions):
         user_ans = answers[i]
-        correct_ans = q.get('correct_index') or q.get('answer')
-        if (user_ans == correct_ans):
-            score += 10
+        # Robustly get the correct index (handle 0 as a valid value)
+        correct_ans = q.get('correct_index')
+        if correct_ans is None:
+            correct_ans = q.get('answer')
+            
+        if user_ans == correct_ans:
+            correct_count += 1
         
+    score = correct_count * 10
     quiz.score = score
     db.session.commit()
     
     state = get_or_create_game_state(current_user.id)
+    target_step = data.get('step')
+    if target_step:
+        try:
+            target_step = int(target_step)
+        except:
+            target_step = state.current_step
+    else:
+        target_step = state.current_step
     
-    # Redirect to the specific step if provided (context preservation), else highest unlocked
-    target_step = data.get('step') or state.current_step
-    
-    # Requirement: 5 questions total, must answer 3 correct (30 points) to pass
-    passed = score >= 30
+    # Requirement: 3 correct out of 5 (60%) to pass
+    passed = correct_count >= 3
     
     if passed:
+        # Proceed to the puzzle for this gate
         redirect_url = f"puzzle.html?step={target_step}"
     else:
-        # Retry logic: reload the same gate's setup
+        # Failed: Redirect back to the same gate setup to try again
         redirect_url = f"quiz_setup.html?step={target_step}"
     
     return jsonify({
         "success": True, 
         "passed": passed, 
         "score": score,
+        "correct_count": correct_count,
         "redirect": redirect_url
     })
 
